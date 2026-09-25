@@ -1,0 +1,57 @@
+name: Sync Fork with Upstream
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_PAT }}
+
+      - name: Configure git user
+        run: |
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+
+      - name: Sync branch and tags from upstream
+        run: |
+          git remote add upstream https://github.com/paperclipai/paperclip.git
+          git fetch upstream --tags
+          git checkout master
+          git merge upstream/master --no-edit
+          git push origin master
+          git push origin --tags
+
+      - name: Mirror upstream GitHub Releases
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_PAT }}
+        shell: bash
+        run: |
+          set +e
+          gh release list --repo paperclipai/paperclip --limit 20 --json tagName -q '.[].tagName' > /tmp/tags.txt
+          cat /tmp/tags.txt
+          while read -r tag; do
+            if [ -z "$tag" ]; then
+              continue
+            fi
+            gh release view "$tag" --repo ${{ github.repository }} >/dev/null 2>&1
+            exists=$?
+            if [ "$exists" -ne 0 ]; then
+              title=$(gh release view "$tag" --repo paperclipai/paperclip --json name -q .name)
+              notes=$(gh release view "$tag" --repo paperclipai/paperclip --json body -q .body)
+              gh release create "$tag" --repo ${{ github.repository }} --title "$title" --notes "$notes"
+              echo "Created release $tag"
+            else
+              echo "Release $tag already exists, skipping"
+            fi
+          done < /tmp/tags.txt
+          exit 0

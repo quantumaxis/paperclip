@@ -1,0 +1,50 @@
+# Paperclip on Dokploy (quantumaxis fork)
+#
+# Point Dokploy Compose → GitHub → this repo, with:
+#   composePath = deploy/dokploy/docker-compose.yml
+#
+# Postgres is NOT in this stack — use a Dokploy Postgres (or other) and set
+# DATABASE_URL in the Dokploy environment.
+#
+# Build context is the repository root (../.. from this file).
+
+services:
+  paperclip:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: paperclip-dokploy:local
+    restart: unless-stopped
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "3100"
+      SERVE_UI: "true"
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL to your Dokploy Postgres}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET}
+      PAPERCLIP_HOME: /paperclip
+      PAPERCLIP_INSTANCE_ID: default
+      PAPERCLIP_CONFIG: /paperclip/instances/default/config.json
+      PAPERCLIP_DEPLOYMENT_MODE: ${PAPERCLIP_DEPLOYMENT_MODE:-authenticated}
+      PAPERCLIP_DEPLOYMENT_EXPOSURE: ${PAPERCLIP_DEPLOYMENT_EXPOSURE:-private}
+      PAPERCLIP_PUBLIC_URL: ${PAPERCLIP_PUBLIC_URL:?set PAPERCLIP_PUBLIC_URL}
+      PAPERCLIP_API_URL: ${PAPERCLIP_API_URL:-}
+      PAPERCLIP_ALLOWED_HOSTNAMES: ${PAPERCLIP_ALLOWED_HOSTNAMES:-}
+      # Non-TTY Docker already auto-applies; set explicitly for clarity.
+      PAPERCLIP_MIGRATION_AUTO_APPLY: "true"
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    expose:
+      - "3100"
+    entrypoint:
+      - /bin/sh
+      - -lc
+      - |
+        node ./overlays/cursor-cloud-stream-fix/apply.mjs
+        exec docker-entrypoint.sh node \
+          --import ./server/node_modules/tsx/dist/loader.mjs \
+          server/dist/index.js
+    volumes:
+      - paperclip-data:/paperclip
+
+volumes:
+  paperclip-data:
