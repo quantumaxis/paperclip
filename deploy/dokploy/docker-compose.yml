@@ -6,15 +6,17 @@
 # Postgres is NOT in this stack — use a Dokploy Postgres (or other) and set
 # DATABASE_URL in the Dokploy environment.
 #
-# Build context is the repository root (../.. from this file).
+# Image: ghcr.io/paperclipai/paperclip:latest + deploy/overlays (thin build).
 
 services:
   paperclip:
     build:
       context: ../..
-      dockerfile: Dockerfile
-    image: paperclip-dokploy:local
+      dockerfile: deploy/dokploy/Dockerfile
+      pull: true
+    image: paperclip-dokploy:overlay
     restart: unless-stopped
+    pids_limit: 2048
     environment:
       HOST: "0.0.0.0"
       PORT: "3100"
@@ -35,14 +37,6 @@ services:
       - host.docker.internal:host-gateway
     expose:
       - "3100"
-    entrypoint:
-      - /bin/sh
-      - -lc
-      - |
-        node ./deploy/overlays/cursor-cloud-stream-fix/apply.mjs
-        exec docker-entrypoint.sh node \
-          --import ./server/node_modules/tsx/dist/loader.mjs \
-          server/dist/index.js
     volumes:
       - paperclip-data:/paperclip
 

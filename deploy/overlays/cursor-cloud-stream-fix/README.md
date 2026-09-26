@@ -17,10 +17,10 @@ At container start, `register.mjs` / `apply.mjs` patches
 2. Put non-secret `PAPERCLIP_*` context in the prompt instead
 3. Fall back to Cursor REST polling when SDK wait does not finish cleanly
 
-Wired from `deploy/dokploy/docker-compose.yml` via:
+Wired from `deploy/dokploy/entrypoint.sh` (thin image on GHCR `:latest`):
 
 ```sh
-node --import ./overlays/cursor-cloud-stream-fix/register.mjs ...
+node /app/deploy/overlays/cursor-cloud-stream-fix/apply.mjs
 ```
 
 If upstream refactors `execute.ts` enough that the patch markers no longer match,

@@ -8,6 +8,8 @@ deploy/
   README.md                          ← this file
   dokploy/
     docker-compose.yml               ← Dokploy composePath
+    Dockerfile                       ← FROM ghcr.io/paperclipai/paperclip:latest
+    entrypoint.sh                    ← apply overlays, then upstream entrypoint
     .env.example
     README.md
   overlays/
@@ -21,6 +23,7 @@ deploy/
 
 - Service type: **Docker Compose** (not Application / Dockerfile)
 - Compose path: `deploy/dokploy/docker-compose.yml`
+- Image: thin build on `ghcr.io/paperclipai/paperclip:latest` + `deploy/overlays`
 - Named volume `paperclip-data` → `/paperclip` (use Compose **Volume Backups**)
 - External Postgres via `DATABASE_URL`
 
