@@ -39,7 +39,7 @@ services:
       - /bin/sh
       - -lc
       - |
-        node ./overlays/cursor-cloud-stream-fix/apply.mjs
+        node ./deploy/overlays/cursor-cloud-stream-fix/apply.mjs
         exec docker-entrypoint.sh node \
           --import ./server/node_modules/tsx/dist/loader.mjs \
           server/dist/index.js

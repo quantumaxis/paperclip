@@ -1,39 +1,24 @@
-# Dokploy deploy notes (quantumaxis/paperclip)
+# Dokploy deploy notes
+
+See also the parent [`deploy/README.md`](../README.md).
 
 ## Compose path
 
-In Dokploy → Compose (GitHub):
+Dokploy → Compose (GitHub) → `quantumaxis/paperclip`:
 
-- Repository: `quantumaxis/paperclip`
-- Branch: `master` (or a release tag)
 - **Compose path:** `deploy/dokploy/docker-compose.yml`
-
-Do **not** use upstream `docker/docker-compose.yml`.
 
 ## Database
 
-This compose expects an **external** Postgres (Dokploy Postgres service or managed DB).
+External Postgres only. Set `DATABASE_URL` in Dokploy env.
 
-Set `DATABASE_URL` in Dokploy env, e.g.:
+## Cursor Cloud overlay
 
-`postgres://USER:PASSWORD@HOST:5432/DBNAME`
+On boot the entrypoint runs:
 
-Also set:
+`node ./deploy/overlays/cursor-cloud-stream-fix/apply.mjs`
 
-- `BETTER_AUTH_SECRET`
-- `PAPERCLIP_PUBLIC_URL`
-- `PAPERCLIP_DEPLOYMENT_MODE=authenticated`
-- `PAPERCLIP_DEPLOYMENT_EXPOSURE=private`
-- `PAPERCLIP_ALLOWED_HOSTNAMES` (your hostname + localhost)
+## Volume backups
 
-Migrations auto-apply on boot (`PAPERCLIP_MIGRATION_AUTO_APPLY=true`).
-
-## Cursor Cloud fix
-
-`overlays/cursor-cloud-stream-fix/` is applied on every container start.
-See that directory’s README.
-
-## Upstream sync
-
-`.github/workflows/sync-upstream.yml` merges `paperclipai/paperclip` hourly.
-Create a repo secret `SYNC_PAT` (PAT with `repo` + `workflow`) like the 9router fork.
+Use Dokploy **Volume Backups** on this Compose service for `paperclip-data`
+(named volume → `/paperclip`). Database dumps are separate (Postgres → Backups).

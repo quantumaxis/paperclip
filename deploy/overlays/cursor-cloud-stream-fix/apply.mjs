@@ -17,7 +17,7 @@ const MARKER = "@quantumaxis cursor-cloud-stream-fix";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TARGET = path.resolve(
   __dirname,
-  "../../packages/adapters/cursor-cloud/src/server/execute.ts",
+  "../../../packages/adapters/cursor-cloud/src/server/execute.ts",
 );
 
 function fail(message) {
