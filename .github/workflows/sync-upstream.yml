@@ -22,14 +22,36 @@ jobs:
           git config --global user.name "${GITHUB_ACTOR}"
           git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
 
-      - name: Sync branch and tags from upstream
+      - name: Sync master + stable tags only
+        shell: bash
         run: |
+          set -euo pipefail
           git remote add upstream https://github.com/paperclipai/paperclip.git
-          git fetch upstream --tags
+
+          # Master tip (for compose builds) — do not fetch channel tags.
+          git fetch upstream master
+          # Stable CalVer only: vYYYY.MDD.P (skips canary/, nightly/, beta/, paperclipai@*)
+          git fetch upstream 'refs/tags/v*:refs/tags/v*'
+
           git checkout master
           git merge upstream/master --no-edit
           git push origin master
-          git push origin --tags
+
+          # Push only exact stable tags (v1.2.3 / v2026.916.0). Dokploy "On Tag"
+          # has no name filter — any pushed tag would redeploy.
+          pushed=0
+          skipped=0
+          while IFS= read -r tag; do
+            if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              git push origin "refs/tags/${tag}"
+              echo "Pushed stable tag ${tag}"
+              pushed=$((pushed + 1))
+            else
+              echo "Skipping non-stable tag ${tag}"
+              skipped=$((skipped + 1))
+            fi
+          done < <(git tag -l 'v*')
+          echo "Stable tags pushed: ${pushed}; skipped: ${skipped}"
 
       - name: Mirror upstream GitHub Releases
         env:
@@ -37,10 +59,15 @@ jobs:
         shell: bash
         run: |
           set +e
+          # Upstream only creates GitHub Releases for stables — still guard the pattern.
           gh release list --repo paperclipai/paperclip --limit 20 --json tagName -q '.[].tagName' > /tmp/tags.txt
           cat /tmp/tags.txt
           while read -r tag; do
             if [ -z "$tag" ]; then
+              continue
+            fi
+            if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Skipping non-stable release tag $tag"
               continue
             fi
             gh release view "$tag" --repo ${{ github.repository }} >/dev/null 2>&1

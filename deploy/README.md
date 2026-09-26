@@ -28,10 +28,14 @@ deploy/
 
 GitHub Actions must live under `.github/workflows/` (platform requirement), so:
 
-- `.github/workflows/sync-upstream.yml` — hourly merge from `paperclipai/paperclip` + tags/releases  
+- `.github/workflows/sync-upstream.yml` — hourly merge of `master` from `paperclipai/paperclip`, plus **stable tags only** (`vYYYY.MDD.P`) and their GitHub Releases  
   (requires `SYNC_PAT` secret)
 
-That file is still fork-only; upstream has no workflow with that name.
+Channel tags (`canary/…`, `nightly/…`, `beta/…`) are intentionally **not** mirrored. Dokploy’s Trigger Type **On Tag** has no name filter — every pushed tag would redeploy. Filtering in sync is the control point.
+
+Dokploy note: **On Tag** only *triggers* the deploy; the build still checks out the configured **Branch** (`master`). Keep Branch = `master`, Trigger = **On Tag**.
+
+That workflow file is still fork-only; upstream has no workflow with that name.
 
 ## Conflict risk
 
